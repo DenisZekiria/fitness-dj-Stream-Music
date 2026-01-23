@@ -919,6 +919,42 @@
       margin-top: 5px;
       display: none;
     }
+
+    /* Song List Styles */
+    .song-list {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #333;
+      border-radius: 5px;
+      background: #111;
+    }
+
+    .song-item {
+      padding: 8px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .song-item:hover {
+      background: #222;
+    }
+
+    .song-item.active {
+      color: #FF0000;
+      background: #220000;
+    }
+
+    .song-thumb {
+      width: 40px;
+      height: 30px;
+      object-fit: cover;
+      margin-right: 10px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 
@@ -1164,9 +1200,14 @@
         <!-- Controls -->
         <div class="spotify-controls">
           <button class="sp-control-btn" onclick="YouTubeController.prev()">⏮</button>
-          <button class="sp-control-btn play-btn" id="ytPlayBtn" style="background:#FF0000; color:#fff;"
-            onclick="YouTubeController.togglePlay()">▶</button>
+
           <button class="sp-control-btn" onclick="YouTubeController.next()">⏭</button>
+        </div>
+
+        <!-- Song List -->
+        <div id="ytSongList" class="song-list">
+          <!-- Songs loaded here -->
+          <div style="padding:10px; text-align:center; color:#666;">Select a playlist to see songs</div>
         </div>
 
         <!-- Volume -->
@@ -1722,6 +1763,7 @@
       },
 
       logout() {
+        if (!confirm("Are you sure you want to logout from YouTube?")) return;
         this.accessToken = null;
         localStorage.removeItem('yt_access_token');
         localStorage.removeItem('yt_expiry');
@@ -1731,6 +1773,19 @@
       async initUI() {
         document.getElementById('ytLogin').style.display = 'none';
         document.getElementById('ytPlayerUI').style.display = 'flex';
+
+        // Fetch User Profile (Channels API)
+        try {
+          const res = await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true', {
+            headers: { 'Authorization': `Bearer ${this.accessToken}` }
+          });
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            document.getElementById('ytUserName').textContent = data.items[0].snippet.title;
+          }
+        } catch (e) {
+          console.error("YT Profile Error", e);
+        }
 
         // Fetch Playlists
         await this.fetchPlaylists();
@@ -1764,9 +1819,68 @@
         this.fetchPlaylists();
       },
 
+      // Fetch songs from playlist
+      async fetchPlaylistItems(pid) {
+        const listDiv = document.getElementById('ytSongList');
+        listDiv.innerHTML = '<div style="padding:10px; text-align:center;">Loading songs...</div>';
+
+        try {
+          const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${pid}&maxResults=50`, {
+            headers: { 'Authorization': `Bearer ${this.accessToken}` }
+          });
+          const data = await res.json();
+
+          listDiv.innerHTML = '';
+          if (data.items) {
+            data.items.forEach((item, index) => {
+              const title = item.snippet.title;
+              const thumb = item.snippet.thumbnails.default ? item.snippet.thumbnails.default.url : '';
+
+              const div = document.createElement('div');
+              div.className = 'song-item';
+              // Store index valid for current playlist
+              div.dataset.index = index;
+              div.onclick = () => {
+                this.playIndex(index);
+              };
+
+              div.innerHTML = `
+                        <img src="${thumb}" class="song-thumb" alt="thumb">
+                        <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+                     `;
+              listDiv.appendChild(div);
+            });
+          } else {
+            listDiv.innerHTML = '<div style="padding:10px; text-align:center;">No songs found.</div>';
+          }
+        } catch (e) {
+          console.error("YT items error", e);
+          listDiv.innerHTML = '<div style="padding:10px; text-align:center; color:red;">Error loading songs.</div>';
+        }
+      },
+
+      playIndex(index) {
+        if (this.player && this.playerReady) {
+          this.player.playVideoAt(index);
+          this.updateActiveItem(index);
+        }
+      },
+
+      updateActiveItem(index) {
+        // Visual highlight
+        const listDiv = document.getElementById('ytSongList');
+        Array.from(listDiv.children).forEach(child => {
+          if (child.dataset.index == index) child.classList.add('active');
+          else child.classList.remove('active');
+        });
+      },
+
       // PLAYER
       selectPlaylist(pid) {
         this.playlistId = pid;
+        // Fetch songs list
+        this.fetchPlaylistItems(pid);
+
         if (this.player && this.playerReady) {
           this.player.loadPlaylist({ listType: 'playlist', list: pid });
         } else {
@@ -1845,19 +1959,20 @@
 
       // Update UI based on state
       updateStatus(stateData) {
-        const btn = document.getElementById('ytPlayBtn');
         const lbl = document.getElementById('ytNowPlaying');
 
         if (stateData === 1) {
-          btn.textContent = "⏸";
-          // YT Iframe API doesn't easily give "Current Track Name" for playlist without another API call
-          // We can try player.getVideoData().title
+          // btn.textContent = "⏸"; // Removed duplicate button logic
           try {
+            // Find current index
+            const idx = this.player.getPlaylistIndex();
+            this.updateActiveItem(idx);
+
             const vData = this.player.getVideoData();
             if (vData && vData.title) lbl.textContent = "▶ " + vData.title;
           } catch (e) { }
         } else {
-          btn.textContent = "▶";
+          // btn.textContent = "▶";
           lbl.textContent = "⏸ Paused";
         }
       }
