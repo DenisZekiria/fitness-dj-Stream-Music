@@ -516,6 +516,23 @@
       outline-offset: -2px;
     }
 
+
+    @media (max-width: 480px) {
+      .modal-content {
+        padding: 20px;
+        border-radius: 12px;
+      }
+
+      .modal-content h2 {
+        font-size: 1.4rem;
+      }
+
+      .modal-close {
+        font-size: 1.8rem;
+        top: 10px;
+      }
+    }
+
     /* Small responsiveness for toggle (mobile) */
     @media (max-width: 420px) {
       .theme-toggle-wrapper {
@@ -758,6 +775,10 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       border: 1px solid #333;
       text-align: center;
+
+      max-height: 90dvh;
+      overflow-y: auto;
+      box-sizing: border-box;
     }
 
     .light-theme .modal-content {
@@ -766,15 +787,17 @@
 
     .modal-close {
       position: absolute;
-      top: 10px;
-      right: 15px;
+      top: 12px;
+      right: clamp(10px, 3vw, 20px);
       background: none;
       border: none;
       font-size: 2rem;
       color: var(--text-color);
       cursor: pointer;
       line-height: 1;
+      padding: 4px 8px;
     }
+
 
     .modal-content h2 {
       margin-top: 0;
@@ -1086,7 +1109,7 @@
       <button type="button" onclick="switchMusicService('spotify')" id="tabSpotify"
         style="background:transparent; color:#1DB954; font-weight:bold; border:none; border-bottom:2px solid #1DB954; padding:5px;">Spotify</button>
       <button type="button" onclick="switchMusicService('youtube')" id="tabYouTube"
-        style="background:transparent; color:#aaa; font-weight:normal; border:none; padding:5px;">YouTube Music</button>
+        style="background:transparent; color:#aaa; font-weight:normal; border:none; padding:5px;">YouTube</button>
     </div>
 
     <!-- SPOTIFY SECTION -->
@@ -1158,12 +1181,12 @@
 
     <!-- YOUTUBE SECTION -->
     <div id="sectionYouTube" style="display:none;">
-      <h3><span style="color:#FF0000">🟥</span> YouTube Music DJ</h3>
+      <h3><span style="color:#FF0000"></span> YouTube DJ</h3>
 
       <!-- Login -->
       <div id="ytLogin" class="spotify-login-container">
         <p style="margin-bottom:15px; font-size:0.9rem; color:#aaa;">
-          Влезте с Google за достъп до плейлисти.
+          Влезте с Google за достъп до плейлисти. За безплатен акаунт са налични и реклами.
         </p>
         <button class="spotify-btn" style="background-color:#FF0000;" onclick="YouTubeController.login()">
           Login with Google
@@ -2572,20 +2595,39 @@
   <!-- Info Modal Markup -->
   <div id="infoModal" class="modal-overlay">
     <div class="modal-content">
-      <button class="modal-close" onclick="toggleInfoModal()">×</button>
-      <h2>За приложението</h2>
+
+      <div class="modal-header">
+        <h2>За приложението</h2>
+        <button class="modal-close" onclick="toggleInfoModal()">×</button>
+      </div>
+
       <div class="modal-desc">
         <p>Това е Вашият ултра лек и мощен фитнес помощник! 🎧🏋️‍♂️</p>
-        <p>Fitness Timer & DJ управлява Вашите тренировки и музика едновременно. Настройте сериите, изберете любимите
-          си
-          mp3 файлове и оставете приложението
-          да бъде Вашият личен DJ – намалява музиката по време на почивка и я усилва, когато е време за работа! Добре
-          е
-          да използвате Chrome браузър или друг който не е месидж базиран от някоя чат платформа.</p>
+        <p>
+          Fitness Timer & DJ управлява тренировките и музиката Ви едновременно.
+          Настройте сериите, изберете любимото си аудио съдържание и оставете
+          приложението да бъде Вашият личен DJ – автоматично намалява музиката
+          по време на почивка и я усилва, когато е време за работа.
+        </p>
+        <p>
+          Приложението поддържа интеграция със <strong>Spotify</strong> и
+          <strong>YouTube</strong>. За оптимално изживяване и пълен контрол над
+          възпроизвеждането се препоръчва използването на
+          <strong>платени (Premium) акаунти</strong>.
+        </p>
+        <p>
+          Препоръчително е използването на браузър <strong>Google Chrome</strong>
+          или друг стандартен браузър, който не е вграден в чат или месинджър платформа.
+        </p>
       </div>
-      <button id="pwaInstallBtn" class="pwa-install-btn">📲 Инсталирай приложението</button>
+
+      <button id="pwaInstallBtn" class="pwa-install-btn">
+        📲 Инсталирай приложението
+      </button>
+
     </div>
   </div>
+
 
   <script>
     // --- Info Modal & PWA Logic ---
