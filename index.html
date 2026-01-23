@@ -1438,31 +1438,25 @@
       },
 
       logout() {
+        this.accessToken = null;
         localStorage.removeItem('sp_access_token');
         localStorage.removeItem('sp_refresh_token');
         localStorage.removeItem('sp_expiry');
-        window.location.reload();
-      },
-
-      // --- PKCE Helpers ---
-      generateRandomString(length) {
-        let text = '';
-        let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        for (let i = 0; i < length; i++) {
-          text += possible.charAt(Math.floor(Math.random() * possible.length));
-        }
-        return text;
-      },
-      async generateCodeChallenge(codeVerifier) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(codeVerifier);
-        const digest = await window.crypto.subtle.digest('SHA-256', data);
-        return btoa(String.fromCharCode(...new Uint8Array(digest)))
-          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        // Stop polling
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        this.initUI();
       },
 
       // --- UI & Player Logic ---
       async initUI() {
+        if (!this.accessToken) {
+          // ShoW Login, Hide Player
+          document.getElementById('spotifyLogin').style.display = 'block';
+          document.getElementById('spotifyPlayerUI').style.display = 'none';
+          return;
+        }
+
+        // Show Player, Hide Login
         document.getElementById('spotifyLogin').style.display = 'none';
         document.getElementById('spotifyPlayerUI').style.display = 'flex';
 
@@ -1477,8 +1471,11 @@
           if (profile.product === 'premium') {
             document.getElementById('spPlanBadge').style.display = 'inline-block';
           } else {
-            alert("Внимание: Нужен Premium акаунт за контрол на Playback!");
+            console.warn("Spotify: Account is not Premium.");
           }
+        } else {
+          // If profile fetch failed (likely 401), initUI might be called again by logout
+          return;
         }
 
         this.refreshPlaylists();
@@ -1486,6 +1483,7 @@
       },
 
       async refreshPlaylists() {
+        if (!this.accessToken) return;
         const data = await this.api('GET', 'me/playlists?limit=50');
         const sel = document.getElementById('spPlaylistSelect');
         sel.innerHTML = '<option value="">-- Избери Плейлист --</option>';
@@ -1507,6 +1505,7 @@
       },
 
       async api(method, endpoint, body = null) {
+        if (!this.accessToken) return null; // Safety check
         try {
           if (Date.now() > this.expiry) await this.refreshTokenFunc();
 
@@ -1520,19 +1519,20 @@
           }
           const res = await fetch('https://api.spotify.com/v1/' + endpoint, opts);
           if (res.status === 204) return null; // No content
-          if (res.status === 401) { this.logout(); return null; }
+          if (res.status === 401) {
+            console.warn("Spotify API 401: Logging out.");
+            this.logout();
+            return null;
+          }
           return await res.json();
         } catch (e) {
-          console.error("API Error", e);
+          console.error("Spotify API Error", e);
           return null;
         }
       },
 
       // --- Controls ---
       togglePlay() {
-        // We can't easily know local state without polling, so we'll just try to Play if paused, Pause if playing
-        // But simpler: just toggle based on last known state or default to Play
-        // Or check this.lastState
         if (this.lastState && this.lastState.is_playing) {
           this.pause();
         } else {
@@ -1567,20 +1567,22 @@
       async applyVolume(percent) {
         if (percent < 0) percent = 0;
         if (percent > 100) percent = 100;
-        // Optimistic UI update not needed for volume API usually, but good to throttle
         await this.api('PUT', 'me/player/volume?volume_percent=' + percent);
       },
 
       // --- Polling for Status ---
       lastState: null,
+      pollInterval: null,
       startPolling() {
-        setInterval(() => this.updateStatus(), 3000);
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        this.pollInterval = setInterval(() => this.updateStatus(), 3000);
         this.updateStatus();
       },
+
       async updateStatus() {
+        if (!this.accessToken) return;
         const data = await this.api('GET', 'me/player');
         if (!data) {
-          // inactive
           document.getElementById('spDeviceWarning').style.display = 'block';
           return;
         }
@@ -1600,7 +1602,11 @@
     let activeMusicService = 'spotify'; // 'spotify' | 'youtube'
 
     function switchMusicService(service) {
-      if (service === activeMusicService) return;
+      console.log(`🔀 Switching music service to: ${service}`);
+      if (service === activeMusicService) {
+        console.log("ℹ️ Already on this service.");
+        return;
+      }
 
       // Stop current
       if (activeMusicService === 'spotify') {
@@ -1625,6 +1631,7 @@
 
         sSec.style.display = 'block';
         ySec.style.display = 'none';
+        console.log("✅ Switched to Spotify UI");
       } else {
         yBtn.style.color = '#FF0000';
         yBtn.style.borderBottom = '2px solid #FF0000';
@@ -1633,13 +1640,17 @@
 
         ySec.style.display = 'block';
         sSec.style.display = 'none';
+        console.log("✅ Switched to YouTube UI");
 
         // Load YT API if not loaded
         if (!window.YT) {
+          console.log("⏳ Loading YouTube IFrame API...");
           const tag = document.createElement('script');
           tag.src = "https://www.youtube.com/iframe_api";
           const firstScriptTag = document.getElementsByTagName('script')[0];
           firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+          console.log("ℹ️ YouTube API already loaded.");
         }
       }
     }
@@ -1656,9 +1667,13 @@
       isDucked: false,
 
       // AUTH
+      // AUTH
       async login() {
         const clientId = GOOGLE_CLIENT_ID;
-        if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+        console.log("🔑 [YT] Login requested with Client ID:", clientId);
+        // Basic check: Ensure it's not empty and has some length
+        if (!clientId || clientId.length < 10) {
+          console.error("❌ Invalid Google Client ID:", clientId);
           alert("Please configure GOOGLE_CLIENT_ID in the code!");
           return;
         }
