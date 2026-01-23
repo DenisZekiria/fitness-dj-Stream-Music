@@ -1680,9 +1680,18 @@
 
         // Google OAuth 2.0 Implicit Flow (Simplest for client-side)
         const redirectUri = window.location.origin + window.location.pathname;
+        console.log("🔗 Generated Redirect URI:", redirectUri);
+
+        // Debugging aid for the user
+        // Remove this alert after setup is done, or keep it if helpful?
+        // prefer simpler approach:
+
         const scope = 'https://www.googleapis.com/auth/youtube.readonly';
 
         const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&state=yt_login`;
+
+        // Check if we are potentially mismatching
+        console.log("🚀 Redirecting to:", url);
 
         window.location = url;
       },
