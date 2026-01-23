@@ -1,0 +1,16 @@
+{
+  "short_name": "FitnessTimer",
+  "name": "Pro Fitness Timer & DJ",
+"icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "theme_color": "#121212",
+  "background_color": "#121212"
+}
