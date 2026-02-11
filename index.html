@@ -1599,15 +1599,33 @@
             opts.body = JSON.stringify(body);
           }
           const res = await fetch('https://api.spotify.com/v1/' + endpoint, opts);
+
           if (res.status === 204) return null; // No content
+
           if (res.status === 401) {
             console.warn("Spotify API 401: Logging out.");
             this.logout();
             return null;
           }
-          return await res.json();
+
+          const text = await res.text(); // Read as text first
+
+          if (!res.ok) {
+            console.error(`Spotify API Error [${res.status}] ${endpoint}:`, text);
+            if (res.status === 403 && text.includes("Premium")) {
+              alert("⚠️ Грешка: Изисква се Spotify Premium за тази функция!");
+            }
+            throw new Error(`Spotify API Error ${res.status}: ${text}`);
+          }
+
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            console.error("Spotify API JSON Parse Error:", e, text);
+            return null;
+          }
         } catch (e) {
-          console.error("Spotify API Error", e);
+          console.error("Spotify API Exception", e);
           return null;
         }
       },
