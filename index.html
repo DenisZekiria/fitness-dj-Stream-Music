@@ -1417,10 +1417,7 @@
           alert('Spotify Auth requires http/https (localhost). It does not work on file://.');
           return;
         }
-        if (this.clientId === '080adb2e286a4f83a188ce7b76810e38') {
-          prompt("Моля задайте Spotify Client ID в кода (ред ~1100).", "Вземете го от develoepr.spotify.com");
-          return;
-        }
+
 
         const codeVerifier = this.generateRandomString(64);
         const codeChallenge = await this.generateCodeChallenge(codeVerifier);
