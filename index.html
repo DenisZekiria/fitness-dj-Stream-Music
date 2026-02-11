@@ -1399,7 +1399,7 @@
     // --- Spotify Controller Implementation ---
     const SpotifyController = {
       // CONFIG - USER MUST FILL THIS
-      clientId: 'YOUR_SPOTIFY_CLIENT_ID_HERE', // <--- ПОПЪЛНИ ТУК
+      clientId: '080adb2e286a4f83a188ce7b76810e38', // <--- ПОПЪЛНИ ТУК
       redirectUri: window.location.origin + window.location.pathname,
       scopes: 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-modify-playback-state user-read-playback-state',
 
@@ -1417,7 +1417,7 @@
           alert('Spotify Auth requires http/https (localhost). It does not work on file://.');
           return;
         }
-        if (this.clientId === 'YOUR_SPOTIFY_CLIENT_ID_HERE') {
+        if (this.clientId === '080adb2e286a4f83a188ce7b76810e38') {
           prompt("Моля задайте Spotify Client ID в кода (ред ~1100).", "Вземете го от develoepr.spotify.com");
           return;
         }
